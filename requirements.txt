@@ -1,0 +1,4 @@
+duckduckgo-search
+langchain-community
+langchain-ollama
+boto3
