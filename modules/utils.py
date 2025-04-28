@@ -1,30 +1,63 @@
-
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import platform, os
+import platform
+import os
 from datetime import datetime
 
 class Utils:
     def get_text_from_files(file_path):
+        """
+        Loads text content from a PDF file and returns a list of documents.
+
+        Parameters:
+        - file_path (str): The full path to the PDF file to be loaded.
+
+        Returns:
+        - List[Document]: A list of Document objects, each representing a portion of the PDF content.
+        
+        Notes:
+        - Uses the PyPDFLoader from langchain_community to extract content.
+        """
         pdf_file_docs = PyPDFLoader(file_path).load()
         return pdf_file_docs
     
-    # def split_text_to_chunks(docs):
-    #     text_splitter = RecursiveCharacterTextSplitter(
-    #         chunk_size=1000, chunk_overlap=20
-    #     )
-    #     doc_split = text_splitter.split_documents(docs)
-    #     return doc_split
-    
     def split_text_to_chunks(doc_text):
-        text_splitter = RecursiveCharacterTextSplitter(separators="\n",chunk_size=400, chunk_overlap=20)
+        """
+        Splits documents into smaller chunks for easier processing.
+
+        Parameters:
+        - doc_text (List[Document]): A list of Document objects to be split.
+
+        Returns:
+        - List[Document]: A list of smaller Document chunks with updated metadata including:
+            - 'file_name': The file name extracted from the source path.
+            - 'created_date': The file creation timestamp (formatted as 'YYYY-MM-DD HH:MM:SS').
+            - 'modified_date': The file modification timestamp (formatted as 'YYYY-MM-DD HH:MM:SS').
+
+        Notes:
+        - Chunking is based on line breaks ('\\n') with a chunk size of 400 characters and 20 characters overlap.
+        - Platform-specific path handling (Windows/Linux/Mac) is included to correctly extract file names.
+        - Adds document metadata and modifies page content by embedding the document name.
+        """
+        text_splitter = RecursiveCharacterTextSplitter(
+            separators="\n", chunk_size=400, chunk_overlap=20
+        )
         doc_text_splits = text_splitter.split_documents(doc_text)
+        
         for index, _ in enumerate(doc_text_splits):
             if platform.system() == "Windows":
                 doc_text_splits[index].metadata["file_name"] = doc_text_splits[index].metadata["source"].split("/")[-1]
             else:
                 doc_text_splits[index].metadata["file_name"] = doc_text_splits[index].metadata["source"].split("/")[-1]
-            doc_text_splits[index].metadata["created_date"] = datetime.fromtimestamp(os.path.getctime(doc_text_splits[index].metadata["source"])).strftime('%Y-%m-%d %H:%M:%S')
-            doc_text_splits[index].metadata["modified_date"] = datetime.fromtimestamp(os.path.getctime(doc_text_splits[index].metadata["source"])).strftime('%Y-%m-%d %H:%M:%S')
-            doc_text_splits[index].page_content = f"""Document Content:\n{doc_text_splits[index].page_content}\n\nDoument Name:'{doc_text_splits[index].metadata["file_name"]}'"""
+            
+            doc_text_splits[index].metadata["created_date"] = datetime.fromtimestamp(
+                os.path.getctime(doc_text_splits[index].metadata["source"])
+            ).strftime('%Y-%m-%d %H:%M:%S')
+            
+            doc_text_splits[index].metadata["modified_date"] = datetime.fromtimestamp(
+                os.path.getctime(doc_text_splits[index].metadata["source"])
+            ).strftime('%Y-%m-%d %H:%M:%S')
+            
+            doc_text_splits[index].page_content = f"""Document Content:\n{doc_text_splits[index].page_content}\n\nDocument Name:'{doc_text_splits[index].metadata["file_name"]}'"""
+        
         return doc_text_splits
