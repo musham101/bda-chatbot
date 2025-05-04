@@ -1,10 +1,23 @@
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import platform
-import os
+import os, shutil
 from datetime import datetime
 
 class Utils:
+    def delete_folder(folder_path):
+        """
+        Deletes a folder and all its contents.
+
+        Args:
+            folder_path (str): The path to the folder to delete.
+        """
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            shutil.rmtree(folder_path)
+            print(f"Folder '{folder_path}' deleted successfully.")
+        else:
+            print(f"Folder '{folder_path}' does not exist.")
+
     def get_text_from_files(file_path):
         """
         Loads text content from a PDF file and returns a list of documents.

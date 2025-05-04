@@ -1,31 +1,41 @@
-import mysql.connector
-from mysql.connector import errorcode
+import pymysql
+from pymysql.err import OperationalError, ProgrammingError, InternalError
 
 class RelationalDatabaseStorage:
+    @staticmethod
     def create_database(config):
         try:
-            conn = mysql.connector.connect(
+            conn = pymysql.connect(
                 host=config['host'],
                 user=config['user'],
-                password=config['password']
+                password=config['password'],
+                port=config.get('port', 3306)
             )
             cursor = conn.cursor()
-            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {config['database']}")
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{config['database']}`")
             print(f"✅ Database '{config['database']}' created or already exists.")
             cursor.close()
             conn.close()
-        except mysql.connector.Error as err:
+        except (OperationalError, InternalError, ProgrammingError) as err:
             print(f"❌ Failed to create database: {err}")
 
+    @staticmethod
     def connect_to_db(config):
         try:
-            conn = mysql.connector.connect(**config)
+            conn = pymysql.connect(
+                host=config['host'],
+                user=config['user'],
+                password=config['password'],
+                database=config['database'],
+                port=config.get('port', 3306)
+            )
             print("✅ Connected to database.")
             return conn
-        except mysql.connector.Error as err:
+        except (OperationalError, InternalError, ProgrammingError) as err:
             print(f"❌ Connection failed: {err}")
             return None
-        
+
+    @staticmethod
     def create_tables(conn):
         try:
             cursor = conn.cursor()
@@ -55,9 +65,10 @@ class RelationalDatabaseStorage:
             conn.commit()
             cursor.close()
             print("✅ Tables created.")
-        except mysql.connector.Error as err:
+        except (OperationalError, InternalError, ProgrammingError) as err:
             print(f"❌ Failed to create tables: {err}")
-    
+
+    @staticmethod
     def setup_chatbot_db(config):
         RelationalDatabaseStorage.create_database(config)
         conn = RelationalDatabaseStorage.connect_to_db(config)

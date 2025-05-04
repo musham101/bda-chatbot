@@ -6,3 +6,8 @@ docx2txt
 pypdf
 langchain-chroma>=0.1.2
 flashrank
+PyMySQL
+fastapi 
+uvicorn 
+pymysql
+python-multipart

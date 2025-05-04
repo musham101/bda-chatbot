@@ -1,11 +1,11 @@
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
-from langchain.retrievers.document_compressors import FlashrankRerank
+# from langchain.retrievers.document_compressors import FlashrankRerank
 from langchain.retrievers import ContextualCompressionRetriever
 
 # Instantiate embeddings and compressor globally
 embeddings = OllamaEmbeddings(model="llama3.1:latest")
-compressor = FlashrankRerank()
+# compressor = FlashrankRerank()
 
 class VectorStorage:
     def load_vectorstore(persist_directory="vector_store"):
@@ -50,25 +50,25 @@ class VectorStorage:
             print(f"- Inserted {len(chunk)} documents to vectorstore...")
         return vector_store
     
-    def get_rerank_retriever(retriever):
-        """
-        Creates a reranking retriever using a compressor over an existing retriever.
+    # def get_rerank_retriever(retriever):
+    #     """
+    #     Creates a reranking retriever using a compressor over an existing retriever.
 
-        Parameters:
-        - retriever (BaseRetriever): A retriever object that fetches initial documents.
+    #     Parameters:
+    #     - retriever (BaseRetriever): A retriever object that fetches initial documents.
 
-        Returns:
-        - ContextualCompressionRetriever: A retriever that reranks documents after initial retrieval using FlashrankRerank.
+    #     Returns:
+    #     - ContextualCompressionRetriever: A retriever that reranks documents after initial retrieval using FlashrankRerank.
 
-        Notes:
-        - The reranker improves the relevance of the retrieved documents based on context.
-        """
-        compressor = FlashrankRerank()
-        compression_retriever = ContextualCompressionRetriever(
-            base_compressor=compressor,
-            base_retriever=retriever
-        )
-        return compression_retriever
+    #     Notes:
+    #     - The reranker improves the relevance of the retrieved documents based on context.
+    #     """
+    #     compressor = FlashrankRerank()
+    #     compression_retriever = ContextualCompressionRetriever(
+    #         base_compressor=compressor,
+    #         base_retriever=retriever
+    #     )
+    #     return compression_retriever
 
     # def insert_docs_to_vectordb(all_splits):
     #     """
