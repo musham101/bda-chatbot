@@ -54,7 +54,7 @@ documents:
 user query:
 {question}
 
-make sure to refer to the files path you used at the end of your response.
+just response with your answer.
 """
 
         # Retrieve relevant documents based on the user query

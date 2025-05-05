@@ -1,10 +1,24 @@
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import platform
-import os, shutil
+import os, shutil, base64
 from datetime import datetime
 
 class Utils:
+    def file_to_base64(file_path):
+        """
+        Converts a file to a Base64-encoded string.
+
+        Args:
+            file_path (str): Path to the file.
+
+        Returns:
+            str: Base64-encoded string of the file contents.
+        """
+        with open(file_path, 'rb') as file:
+            encoded_string = base64.b64encode(file.read()).decode('utf-8')
+        return encoded_string
+    
     def delete_folder(folder_path):
         """
         Deletes a folder and all its contents.

@@ -48,7 +48,7 @@ class VectorStorage:
             chunk = doc_text_splits[i:i + chunk_size]
             vector_store.add_documents(documents=chunk)
             print(f"- Inserted {len(chunk)} documents to vectorstore...")
-        return vector_store
+        return vector_store, persist_directory
     
     # def get_rerank_retriever(retriever):
     #     """

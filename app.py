@@ -8,8 +8,17 @@ from modules.vector_storeage import VectorStorage
 from modules.chatbot import Chatbot
 from modules.utils import Utils
 import pymysql, uuid, os, tempfile
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],         # ✅ Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],         # Allow all HTTP methods (POST, GET, etc.)
+    allow_headers=["*"],         # Allow all headers
+)
 
 # DB config
 DB_CONFIG = {
@@ -20,6 +29,8 @@ DB_CONFIG = {
 }
 
 S3_BUCKET = "big-data-analytics-001"
+
+
 
 # Create database & tables (if not already done)
 RelationalDatabaseStorage.setup_chatbot_db(DB_CONFIG)
@@ -78,9 +89,47 @@ def signin(user: SignInRequest):
 async def chat(
     user_id: str = Form(...),
     message: str = Form(...),
+    vectorstore_name: str = Form(None)
+):
+    try:
+        # Step 1: Save file to S3 (if uploaded)
+        if vectorstore_name:
+
+            VectorStore = VectorStorage.load_vectorstore(vectorstore_name)
+
+            retriver = VectorStore.as_retriever(search_type="mmr", search_kwargs={"k": 5, "fetch_k": 100})
+
+            bot_response, docs = Chatbot.rag_response(retriver, message)
+
+            KeyValueStorage.insert_conversation_log(user_id, message, bot_response)
+
+            return JSONResponse(content={
+                "user_id": user_id,
+                "message": message,
+                "bot_response": bot_response
+            })
+        else:
+            bot_response = Chatbot.simple_response(message)
+
+            KeyValueStorage.insert_conversation_log(user_id, message, bot_response)
+
+            return JSONResponse(content={
+                "user_id": user_id,
+                "message": message,
+                "bot_response": bot_response,
+            })
+
+    except Exception as e:
+        return HTTPException(status_code=500, detail=str(e))
+    
+
+@app.post("/upload")
+async def chat(
+    user_id: str = Form(...),
     file: UploadFile = File(None)
 ):
     try:
+        Utils.delete_folder(f"{user_id}/vectorstore")
         # Step 1: Save file to S3 (if uploaded)
         if file:
             folder_name = f"{user_id}/uploads"
@@ -92,40 +141,66 @@ async def chat(
                 tmp_path = tmp.name
 
             # Upload to S3
-            ObjectStorage.upload_file_to_s3(S3_BUCKET, folder_name, tmp_path)
+            s3_path = ObjectStorage.upload_file_to_s3(S3_BUCKET, folder_name, tmp_path)
 
             docs = Utils.get_text_from_files(tmp_path)
 
             doc_chunks = Utils.split_text_to_chunks(docs)
 
-            VectorStore = VectorStorage.load_vectorstore()
+            VectorStore = VectorStorage.load_vectorstore(f"{user_id}/vectorstore")
 
-            VectorStore = VectorStorage.insert_chunks_to_vectordb(doc_chunks)
-
-            retriver = VectorStore.as_retriever(search_type="mmr", search_kwargs={"k": 5, "fetch_k": 100})
-
-            # compression_retriever = VectorStorage.get_rerank_retriever(retriver)
-
-            bot_response, docs = Chatbot.rag_response(retriver, message)
-
-            KeyValueStorage.insert_conversation_log(user_id, message, bot_response)
+            VectorStore, VectorStore_name = VectorStorage.insert_chunks_to_vectordb(doc_chunks)
 
             os.remove(tmp_path)
-            Utils.delete_folder("vector_store")
 
             return JSONResponse(content={
                 "user_id": user_id,
-                "message": message,
-                "bot_response": bot_response
+                "message": VectorStore_name,
+                "s3_path": s3_path
             })
         else:
-            bot_response = Chatbot.simple_response(message)
+            raise HTTPException(status_code=404, detail="❌ file upload fail.")
+
+    except Exception as e:
+        return HTTPException(status_code=500, detail=str(e))
+
+@app.post("/last_file")
+async def chat(
+    user_id: str = Form(...),
+    s3_path: str = Form(...)
+):
+    # try:
+    # Step 1: Save file to S3 (if uploaded)
+    if user_id:
+        
+        ObjectStorage.download_file_from_s3(S3_BUCKET, s3_path.replace("s3://big-data-analytics-001/", ""), f"{user_id}.pdf")
+
+        return JSONResponse(content={
+            "user_id": user_id,
+            "file_base64": Utils.file_to_base64(f"{user_id}.pdf")
+        })
+    else:
+        raise HTTPException(status_code=404, detail="❌ file upload fail.")
+
+    # except Exception as e:
+    #     return HTTPException(status_code=500, detail=str(e))
+
+@app.post("/history")
+async def chat(
+    user_id: str = Form(...)
+):
+    try:
+        # Step 1: Save file to S3 (if uploaded)
+        if user_id:
+            
+            logs = KeyValueStorage.fetch_conversation_logs(user_id)
 
             return JSONResponse(content={
                 "user_id": user_id,
-                "message": message,
-                "bot_response": bot_response,
+                "history": logs,
             })
+        else:
+            raise HTTPException(status_code=404, detail="❌ file upload fail.")
 
     except Exception as e:
         return HTTPException(status_code=500, detail=str(e))

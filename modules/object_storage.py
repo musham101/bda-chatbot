@@ -74,6 +74,7 @@ class ObjectStorage:
         try:
             s3.upload_file(local_file_path, bucket_name, s3_key)
             print(f"✅ File '{file_name}' uploaded to 's3://{bucket_name}/{s3_key}'")
+            return f"s3://{bucket_name}/{s3_key}"
         except Exception as e:
             print(f"❌ Upload failed: {e}")
     

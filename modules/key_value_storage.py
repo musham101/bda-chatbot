@@ -149,7 +149,7 @@ class KeyValueStorage:
         try:
             response = table.query(
                 KeyConditionExpression=Key('UserID').eq(user_id),
-                Limit=limit,
+                # Limit=limit,
                 ScanIndexForward=not descending  # False = newest first
             )
 
